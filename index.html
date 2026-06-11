@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Subu Task Manager</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="page-center">
+  <div class="auth-card">
+    <div class="auth-logo">✅</div>
+    <h2>Subu Task Manager</h2>
+    <p class="auth-sub">Login to manage your tasks</p>
+    <button onclick="googleSignIn()" class="btn-google">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.09 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.3-8.16 2.3-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <div class="divider"><span>or</span></div>
+    <input id="loginEmail" type="email" placeholder="Email address" autocomplete="email">
+    <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password">
+    <button onclick="emailLogin()" class="btn-primary">Login</button>
+    <p id="loginMsg" class="error-msg"></p>
+    <div class="auth-links">
+      <span onclick="showForgot()" class="link-text">Forgot password?</span>
+      <span onclick="showSignup()" class="link-text">Create account</span>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNUP PAGE -->
+<div id="signupPage" class="page-center" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">🆕</div>
+    <h2>Create Account</h2>
+    <p class="auth-sub">Start managing your tasks</p>
+    <input id="signupName" type="text" placeholder="Your name">
+    <input id="signupEmail" type="email" placeholder="Email address">
+    <input id="signupPassword" type="password" placeholder="Password (min 6 chars)">
+    <button onclick="createAccount()" class="btn-primary">Create Account</button>
+    <p id="signupMsg" class="error-msg"></p>
+    <div class="auth-links">
+      <span onclick="showLogin()" class="link-text">Already have an account? Login</span>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD PAGE -->
+<div id="forgotPage" class="page-center" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">🔑</div>
+    <h2>Reset Password</h2>
+    <p class="auth-sub">Enter your email to receive a reset link</p>
+    <input id="forgotEmail" type="email" placeholder="Email address">
+    <button onclick="sendReset()" class="btn-primary">Send Reset Link</button>
+    <p id="forgotMsg" class="error-msg"></p>
+    <div class="auth-links">
+      <span onclick="showLogin()" class="link-text">Back to Login</span>
+    </div>
+  </div>
+</div>
+
+<!-- APP PAGE -->
+<div id="appPage" style="display:none">
+  <header class="app-header">
+    <h1>📋 My Tasks</h1>
+    <div class="header-right">
+      <div class="streak-pill" onclick="openStreakModal()">🔥 <span id="streakCount">0</span> day streak</div>
+      <button class="icon-btn" onclick="toggleDarkMode()" id="darkModeBtn" title="Dark Mode">🌙</button>
+      <span id="notifStatus" class="notif-badge" onclick="toggleNotifications()">🔔</span>
+      <div class="user-avatar" onclick="logout()" title="Logout" id="userAvatar">?</div>
+    </div>
+  </header>
+
+  <!-- ADD TASK FORM -->
+  <div class="add-task-card">
+    <h3>Add New Task</h3>
+    <div class="form-row">
+      <input id="task" type="text" placeholder="Task title..." class="input-wide">
+      <input id="taskDesc" type="text" placeholder="Description (optional)">
+    </div>
+    <div class="form-row">
+      <div class="field-group">
+        <label>Deadline Date</label>
+        <input id="deadlineDate" type="date">
+      </div>
+      <div class="field-group">
+        <label>Time (12-hr)</label>
+        <div class="time-row">
+          <input id="deadlineHour" type="number" min="1" max="12" placeholder="HH" class="time-input">
+          <span class="time-sep">:</span>
+          <input id="deadlineMin" type="number" min="0" max="59" placeholder="MM" class="time-input">
+          <select id="deadlineAmPm" class="ampm-select"><option value="AM">AM</option><option value="PM">PM</option></select>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Priority</label>
+        <select id="priority">
+          <option value="low">🟢 Low</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="high">🔴 High</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Category</label>
+        <input id="category" type="text" placeholder="Work, Personal...">
+      </div>
+      <div class="field-group">
+        <label>Task Type</label>
+        <select id="taskType">
+          <option value="temporary">⏳ Temporary</option>
+          <option value="constant">🔁 Constant (Daily)</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="addTask()" class="btn-primary">+ Add Task</button>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('pending',this)">Pending</button>
+    <button class="filter-btn" onclick="setFilter('done',this)">Done</button>
+    <button class="filter-btn" onclick="setFilter('constant',this)">🔁 Daily</button>
+    <button class="filter-btn" onclick="showYesterdayView()">📅 History</button>
+    <input id="searchBox" type="text" placeholder="🔍 Search tasks..." oninput="render()" class="search-input">
+  </div>
+
+  <!-- HOME MINI SUMMARY -->
+  <div class="mini-view-bar">
+    <span id="miniPending">0 pending</span>
+    <span class="mini-dot">•</span>
+    <span id="miniDone">0 done</span>
+    <span class="mini-dot">•</span>
+    <span id="miniStreak">🔥 0 streak</span>
+    <span class="mini-dot">•</span>
+    <span id="miniOverdue" class="mini-overdue">0 overdue</span>
+  </div>
+
+  <!-- TASK LIST -->
+  <ul id="list"></ul>
+
+  <!-- EDIT MODAL -->
+  <div id="editModal" class="modal-backdrop" style="display:none">
+    <div class="modal-box">
+      <h3>✏️ Edit Task</h3>
+      <input id="editTitle" type="text" placeholder="Task title">
+      <input id="editDesc" type="text" placeholder="Description">
+      <div class="form-row">
+        <div class="field-group">
+          <label>Date</label>
+          <input id="editDate" type="date">
+        </div>
+        <div class="field-group">
+          <label>Time</label>
+          <div class="time-row">
+            <input id="editHour" type="number" min="1" max="12" class="time-input" placeholder="HH">
+            <span class="time-sep">:</span>
+            <input id="editMin" type="number" min="0" max="59" class="time-input" placeholder="MM">
+            <select id="editAmPm" class="ampm-select"><option value="AM">AM</option><option value="PM">PM</option></select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label>Priority</label>
+          <select id="editPriority">
+            <option value="low">🟢 Low</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="high">🔴 High</option>
+          </select>
+        </div>
+      </div>
+      <input id="editCategory" type="text" placeholder="Category">
+      <div class="modal-btns">
+        <button onclick="closeEditModal()" class="btn-cancel">Cancel</button>
+        <button onclick="saveEdit()" class="btn-primary">💾 Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVIDENCE MODAL -->
+  <div id="evidenceModal" class="modal-backdrop" style="display:none">
+    <div class="modal-box">
+      <h3>Submit Completion Evidence</h3>
+      <p class="modal-sub">Task: <strong id="evidenceTaskName"></strong></p>
+      <div class="ai-verify-section">🤖 AI will verify your evidence matches the task</div>
+      <div class="upload-area" onclick="document.getElementById('evidenceFile').click()">
+        <div class="upload-icon">📎</div>
+        <p>Click to upload image/file<br><span class="upload-hint">JPG, PNG, PDF supported</span></p>
+        <input type="file" id="evidenceFile" accept="image/*,.pdf" style="display:none" onchange="previewEvidence()">
+      </div>
+      <div id="evidencePreview" style="display:none">
+        <img id="previewImg" src="" alt="preview" style="display:none">
+        <p id="previewFileName" class="file-name-label"></p>
+      </div>
+      <textarea id="evidenceNote" placeholder="Describe what you did (e.g. 'Practiced 30 words, learned past tense grammar')..." rows="3"></textarea>
+      <div id="aiVerifyResult" style="display:none" class="ai-result-box"></div>
+      <div class="modal-btns">
+        <button onclick="closeEvidenceModal()" class="btn-cancel">Cancel</button>
+        <button onclick="submitEvidence()" class="btn-primary" id="submitEvidenceBtn">✅ Mark Complete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW EVIDENCE MODAL -->
+  <div id="viewEvidenceModal" class="modal-backdrop" style="display:none">
+    <div class="modal-box">
+      <h3>Completion Evidence</h3>
+      <p class="modal-sub">Task: <strong id="viewTaskName"></strong></p>
+      <div id="viewEvidenceContent"></div>
+      <div class="modal-btns">
+        <button onclick="closeViewModal()" class="btn-primary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STREAK MODAL -->
+  <div id="streakModal" class="modal-backdrop" style="display:none">
+    <div class="modal-box streak-modal-box">
+      <div class="streak-modal-header">
+        <div class="streak-fire-big">🔥</div>
+        <div>
+          <h3><span id="streakModalCount">0</span> day streak!</h3>
+          <p class="modal-sub" id="streakModalSub">Keep it going!</p>
+        </div>
+      </div>
+      <div class="streak-stats-row">
+        <div class="streak-stat"><div class="streak-stat-val" id="statLongest">0</div><div class="streak-stat-label">Longest Streak</div></div>
+        <div class="streak-stat"><div class="streak-stat-val" id="statTotal">0</div><div class="streak-stat-label">Total Active Days</div></div>
+        <div class="streak-stat"><div class="streak-stat-val" id="statDone">0</div><div class="streak-stat-label">Tasks Completed</div></div>
+      </div>
+      <div class="streak-calendar-section">
+        <h4>Streak Calendar</h4>
+        <div class="cal-nav">
+          <button onclick="calPrev()" class="cal-nav-btn">‹</button>
+          <span id="calMonthLabel"></span>
+          <button onclick="calNext()" class="cal-nav-btn">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="modal-btns"><button onclick="closeStreakModal()" class="btn-primary">Close</button></div>
+    </div>
+  </div>
+
+  <!-- YESTERDAY/HISTORY MODAL -->
+  <div id="yesterdayModal" class="modal-backdrop" style="display:none">
+    <div class="modal-box" style="max-width:520px">
+      <h3>📅 Task History (Last 7 Days)</h3>
+      <div id="yesterdayContent" style="max-height:400px;overflow-y:auto"></div>
+      <div class="modal-btns"><button onclick="closeYesterdayModal()" class="btn-primary">Close</button></div>
+    </div>
+  </div>
+
+  <!-- CELEBRATION OVERLAY -->
+  <div id="celebrationOverlay" style="display:none" class="celebration-overlay">
+    <div class="celebration-box">
+      <div id="celebEmoji" class="celeb-emoji">🎉</div>
+      <h2 id="celebTitle">Amazing!</h2>
+      <p id="celebMsg">Task completed!</p>
+      <canvas id="confettiCanvas" width="300" height="200"></canvas>
+      <button onclick="closeCelebration()" class="btn-primary" style="margin-top:16px">Keep Going! 💪</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
